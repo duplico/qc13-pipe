@@ -26,6 +26,6 @@ mating_format = '<BBBBHQH'
 
 # print mate_payload_tuple
 
-with serial.Serial('/dev/ttyS1', 9600) as ser:
+with serial.Serial('/dev/ttyUSB0', 9600) as ser:
     while True:
-        print '%02x' % ser.read()
+        print '%02x' % ord(ser.read())
