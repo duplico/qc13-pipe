@@ -4,7 +4,7 @@ from struct import pack, unpack
 from bitstruct import pack as bitpack
 from bitstruct import unpack as bitunpack
 
-achievements_awarded = range(0,17)
+achievements_awarded = [55, 56]
 
 hats = {
     0: ("DUPLiCO's special friend", "Be chosen."),
@@ -98,7 +98,7 @@ mating_format_nocrc = '<BBBBHQBBBBBB'
 
 sync_bytes = [0xA0, 0xFF, 0x00, 0xAA]
 sync_position = 0
-payload_len = 16
+payload_len = 22
 payload = ''
 
 DEDICATED_BASE_ID = 254
@@ -114,8 +114,8 @@ def send_pipe_claim_hat(hat_id):
     flags = ord(flags_bytes[1])
     flags += (ord(flags_bytes[0]) << 8)
     
-    c = crc_check(pack(mating_format_nocrc, *(0x42, DEDICATED_BASE_ID, 0xff, 0, flags, 0x00, 0, 0, 0, 0, 0, 0))
-    out_payload = pack(mating_format, 0x42, DEDICATED_BASE_ID, 0xff, 0, flags, 0x00, 0, 0, 0, 0, 0, 0, c)
+    c = crc_check(pack(mating_format_nocrc, *(0x42, DEDICATED_BASE_ID, hat_id, 0, flags, 0x00, 0, 0, 0, 0, 0, 0)))
+    out_payload = pack(mating_format, 0x42, DEDICATED_BASE_ID, hat_id, 0, flags, 0x00, 0, 0, 0, 0, 0, 0, c)
     
     # TX: sync_bytes
     ser.write(map(chr, sync_bytes))
@@ -128,13 +128,14 @@ def send_pipe_nrst():
     flags = ord(flags_bytes[1])
     flags += (ord(flags_bytes[0]) << 8)
 
-    c = crc_check(pack(mating_format_nocrc, *(0x42, DEDICATED_BASE_ID, 0xff, 0, flags, 0x00, 0, 0, 0, 0, 0, 0))
+    c = crc_check(pack(mating_format_nocrc, *(0x42, DEDICATED_BASE_ID, 0xff, 0, flags, 0x00, 0, 0, 0, 0, 0, 0)))
     out_payload = pack(mating_format, 0x42, DEDICATED_BASE_ID, 0xff, 0, flags, 0x00, 0, 0, 0, 0, 0, 0, c)
     
     # TX: sync_bytes
     ser.write(map(chr, sync_bytes))
     # TX: out_payload
     ser.write(out_payload)
+    print 'NRST sent'
 
 def handle_input(payload):
     mate_payload_tuple = unpack(mating_format, payload)
@@ -159,6 +160,14 @@ def handle_input(payload):
      f_pipe, f_handler, f_badge_has_claimed_hat, f_rst,
      f_hat_holder, f_ink, f_nack, f_ack, f_award,
      f_unused) = bitunpack('u4u1u1u1u1u1u1u1u1u1u1u1u1', [flags1, flags0])
+
+    print 'rst', f_rst
+    print 'hat awarded', f_hat_holder
+    print 'hat claimed', f_badge_has_claimed_hat
+
+    if not f_rst:
+        print "I think we're done"
+        return
     
     # So first we receive a RST from the badge. That's how we start our interaction
     #  with it. 
@@ -181,17 +190,22 @@ def handle_input(payload):
         if ach & 1:
             badge_achievements.append(i)
         ach = ach >> 1
-        
+    print badge_achievements
+    
     if f_hat_holder and f_badge_has_claimed_hat:
         pass
-    elif f_hat_holder and not f_badge_has_claimed_hat:
+    elif f_hat_holder and not f_badge_has_claimed_hat and hat_award_id not in achievements_awarded:
         # TIME TO AWARD IT, WOOOOOOOOO!!!!
+        print 'Already won, time to claim', hat_award_id
+        send_pipe_claim_hat(hat_award_id)
         pass
     else:
+        print 'Awarded are:', achievements_awarded
         # Let's find an unawarded ACHIEVEMENT!
-        for achievement in ach[::-1]: # Work backwards.
+        for achievement in badge_achievements[::-1]: # Work backwards.
             if achievement not in achievements_awarded and achievement in hats:
                 # It's available!
+                print 'We can award hat %d' % achievement
                 send_pipe_claim_hat(achievement)
                 new_hat = True
                 break
