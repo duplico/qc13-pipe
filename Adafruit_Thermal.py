@@ -58,7 +58,7 @@ class Adafruit_Thermal(Serial):
 		# If both passed, use those values.
 		baudrate = 19200
 		if len(args) == 0:
-			args = [ "/dev/ttyAMA0", baudrate ]
+			args = [ "/dev/ttyS0", baudrate ]
 		elif len(args) == 1:
 			args = [ args[0], baudrate ]
 		else:
@@ -370,7 +370,7 @@ class Adafruit_Thermal(Serial):
 	# Feeds by the specified number of individual pixel rows
 	def feedRows(self, rows):
 		self.writeBytes(27, 74, rows)
-		self.timeoutSet(rows * dotFeedTime)
+		self.timeoutSet(rows * self.dotFeedTime)
 
 
 	def flush(self):
@@ -451,7 +451,7 @@ class Adafruit_Thermal(Serial):
 	# the Imaging Library to perform such operations before
 	# passing the result to this function.
 	def printImage(self, image, LaaT=False):
-		import Image
+		from PIL import Image
 
 		if image.mode != '1':
 			image = image.convert('1')
