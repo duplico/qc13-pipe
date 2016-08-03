@@ -136,7 +136,7 @@ def read_and_handle_achievements(payload):
     if payload.f_hat_holder and payload.f_badge_has_claimed_hat:
         # They already have a hat, and they've actually claimed it.
         print 'They have a hat, and they have claimed it.'
-    elif payload.f_hat_holder and not payload.f_badge_has_claimed_hat and payload.hat_award_id not in achievements.awarded:
+    elif payload.f_hat_holder and not payload.f_badge_has_claimed_hat and payload.hat_award_id not in achievements_awarded:
         # AWARDING THE HAT!!!
         print 'Already won, time to claim', payload.hat_award_id
         send_pipe_claim_hat(payload.hat_award_id)
@@ -179,7 +179,7 @@ with serial.Serial('/dev/ttyUSB0', 9600) as ser:
             else:
                 # Accepted
                 # Save that the hat is awarded.
-                achievements_awarded.append(p, give_hat)
+                achievements_awarded.append(give_hat)
             give_hat = None
         elif p.f_nack:
             print 'Hat refused. Ungrateful little squid...'
