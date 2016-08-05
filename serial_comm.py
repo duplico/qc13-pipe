@@ -1,15 +1,15 @@
-
-
 import crcmod
 import serial
 from struct import pack, unpack
 from bitstruct import pack as bitpack
 from bitstruct import unpack as bitunpack
 
+import ZODB, ZODB.FileStorage
+from persistent.list import PersistentList
+import transaction
+
 from generator import print_journey
 from qc13conf import *
-
-achievements_awarded = [55, 56]
 
 mating_format = '<BBBBHQBBBBBBH'
 mating_format_nocrc = '<BBBBHQBBBBBB'
@@ -136,7 +136,7 @@ def read_and_handle_achievements(payload):
     if payload.f_hat_holder and payload.f_badge_has_claimed_hat:
         # They already have a hat, and they've actually claimed it.
         print 'They have a hat, and they have claimed it.'
-    elif payload.f_hat_holder and not payload.f_badge_has_claimed_hat and payload.hat_award_id not in achievements_awarded:
+    elif payload.f_hat_holder and not payload.f_badge_has_claimed_hat and payload.hat_award_id not in root['achievements_awarded']:
         # AWARDING THE HAT!!!
         print 'Already won, time to claim', payload.hat_award_id
         send_pipe_claim_hat(payload.hat_award_id)
@@ -145,7 +145,7 @@ def read_and_handle_achievements(payload):
         # Let's try to find an unawarded achievement that they've
         #  earned.
         for a in hats.keys():
-            if a in badge_achievements and a not in achievements_awarded:
+            if a in badge_achievements and a not in root['achievements_awarded']:
                 # It's available!
                 print 'We can award hat %d' % a
                 send_pipe_claim_hat(a)
@@ -154,38 +154,48 @@ def read_and_handle_achievements(payload):
     # Finally, we just need to do a print.
     # Let's let the main handle that.
     return result
-    
-# There's 3 different things we can get from the badge:
-#   1. RST: means we reply with an ~RST
-#   2. NRST: means we read its achievements and print, possibly bestow.
-#   3. ACK or NACK: completes the bestow handshake.
-#   4. F_REPRINT: do a print again, regardless of whether we're in
-#       timeout.
 
-with serial.Serial('/dev/ttyUSB0', 9600) as ser:
-    give_hat = None
-    while True:
-        print "Listening..."
-        p = read_payload()
-        if not p:
-            continue
-            
-        if p.f_rst:
-            send_pipe_nrst()
-        elif p.f_ack:
-            print 'Hat accepted.'
-            if give_hat is None:
-                pass
+if __name__ == "__main__":
+    storage = ZODB.FileStorage.FileStorage('qc13pipe.fs')
+    db = ZODB.DB(storage)
+    connection = db.open()
+    root = connection.root()
+    if 'achievements_awarded' not in root:
+        root['achievements_awarded'] = [55, 56]
+        transaction.commit()
+        
+    # There's 3 different things we can get from the badge:
+    #   1. RST: means we reply with an ~RST
+    #   2. NRST: means we read its achievements and print, possibly bestow.
+    #   3. ACK or NACK: completes the bestow handshake.
+    #   4. F_REPRINT: do a print again, regardless of whether we're in
+    #       timeout.
+
+   with serial.Serial('/dev/ttyUSB0', 9600) as ser:
+        give_hat = None
+        while True:
+            print "Listening..."
+            p = read_payload()
+            if not p:
+                continue
+                
+            if p.f_rst:
+                send_pipe_nrst()
+            elif p.f_ack:
+                print 'Hat accepted.'
+                if give_hat is None:
+                    pass
+                else:
+                    # Accepted
+                    # Save that the hat is awarded.
+                    root['achievements_awarded'].append(give_hat)
+                    transaction.commit()
+                give_hat = None
+            elif p.f_nack:
+                print 'Hat refused. Ungrateful little squid...'
+                give_hat = None
+                print_journey(p, give_hat) # Hat refused. Ungrateful jackass...
             else:
-                # Accepted
-                # Save that the hat is awarded.
-                achievements_awarded.append(give_hat)
-            give_hat = None
-        elif p.f_nack:
-            print 'Hat refused. Ungrateful little squid...'
-            give_hat = None
-            print_journey(p, give_hat) # Hat refused. Ungrateful jackass...
-        else:
-            # Got a NRST, time to read achievements.
-            give_hat = read_and_handle_achievements(p)
-            if give_hat is None: print_journey(p, give_hat)
+                # Got a NRST, time to read achievements.
+                give_hat = read_and_handle_achievements(p)
+                if give_hat is None: print_journey(p, give_hat)
