@@ -162,6 +162,7 @@ if __name__ == "__main__":
     root = connection.root()
     if 'achievements_awarded' not in root:
         root['achievements_awarded'] = [55, 56]
+        root['ids_given_contest_hats'] = []
         transaction.commit()
         
     # There's 3 different things we can get from the badge:
