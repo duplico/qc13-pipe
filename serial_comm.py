@@ -145,7 +145,7 @@ def read_and_handle_achievements(payload):
         # Let's try to find an unawarded achievement that they've
         #  earned.
         for a in hats.keys():
-            if a in badge_achievements and a not in root['achievements_awarded']:
+            if a in payload.achievement_list and a not in root['achievements_awarded']:
                 # It's available!
                 print 'We can award hat %d' % a
                 send_pipe_claim_hat(a)
