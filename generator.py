@@ -9,7 +9,7 @@ from PIL import Image, ImageEnhance
 import qrcode
 from M2Crypto.EVP import hmac
 
-from Adafruit_Thermal import Adafruit_Thermal
+from escpos import printer
 from qc13conf import *
 
 pid = str(os.getpid())
@@ -17,9 +17,8 @@ pidfile = "/tmp/qc13pipe.pid"
 
 KEY = 'iSLJVA4c5TmIM103GHPWM6fz5NIHnGuAPU0x8t6UxyWi1F6wulrJilkbqk7cgma'
 
-at = Adafruit_Thermal()
-at.begin(255)
-at.setTimes(35000,1000)
+p = printer.Usb(0x0416, 0x5011)
+
 
 def get_url(badge_id, award_id):
     award = badge_id*256+award_id
@@ -65,78 +64,85 @@ ROW_SPACE = 15
 def print_img(path):
     i = Image.open(path)
     i.thumbnail((384,384))
-    at.printImage(i, LaaT=True)
+    g.image(i, impl='bitImageColumn')
+    # TODO: Don't do this.
+    # at.printImage(i, LaaT=True)
     
+def println(text):
+    g.text('%s\n' % text)
 
 def print_journey(badge, print_code):
-    if badge.f_reprint and badge.f_hat_holder:
-        print_code = badge.hat_award_id
-    at.justify('L')
-    if print_code is not None:
-        print 'We should print a QR code.'
+    # if badge.f_reprint and badge.f_hat_holder:
+        # print_code = badge.hat_award_id
+    # at.justify('L')
+    # if print_code is not None:
+        # print 'We should print a QR code.'
     
-    at.println("   your journey so far") #    (%d)" % badge.from_addr)
+    # at.println("   your journey so far") #    (%d)" % badge.from_addr)
+    println("   your journey so far") #    (%d)" % badge.from_addr)
     print_img('qc13receiptlogo_smw.png')
     print_img('uber.png')
-    at.println(progress_bar('been near', badge.uber_seen_count, UBER_COUNT))
-    at.println(progress_bar('touched tentacles', badge.uber_mate_count, UBER_COUNT))
+    println(progress_bar('been near', badge.uber_seen_count, UBER_COUNT))
+    println(progress_bar('touched tentacles', badge.uber_mate_count, UBER_COUNT))
     
-    at.feedRows(ROW_SPACE)
+    g.cut()
     print_img('handler.png')
-    at.println(progress_bar('been near', badge.odh_seen_count, HANDLER_COUNT))
-    at.println(progress_bar('touched tentacles', badge.odh_mate_count, HANDLER_COUNT))
+    println(progress_bar('been near', badge.odh_seen_count, HANDLER_COUNT))
+    println(progress_bar('touched tentacles', badge.odh_mate_count, HANDLER_COUNT))
     
-    at.feedRows(ROW_SPACE)
+    feedRows(ROW_SPACE)
     print_img('blooper.png')
-    at.println(progress_bar('been near', badge.seen_count, 250))
-    at.println(progress_bar('touched tentacles', badge.mate_count, 250))
+    println(progress_bar('been near', badge.seen_count, 250))
+    println(progress_bar('touched tentacles', badge.mate_count, 250))
     
-    at.feedRows(ROW_SPACE)
+    g.set(align='CENTER')
+    g.text('\n')
     print_img('camo.png')
-    at.justify('C')
-    at.underlineOn()
-    at.println(camos[badge.camo_id][0])
-    at.underlineOff()
+    g.set(text_type='U2')
+    println(camos[badge.camo_id][0])
+    g.set(text_type='NORMAL')
     for line in wrap(camos[badge.camo_id][1], 32):
-        at.println(line)
+        println(line)
     
-    at.feedRows(ROW_SPACE)
+    g.cut()
     print_img('achievements.png')
     
     ach_list = map(lambda a: hats[a][0], badge.achievement_list)
     ach_text = ' | '.join(ach_list)
     for line in wrap(ach_text, 32):
-        at.println(line)
+        println(line)
     
-    at.justify('L')
-    at.feedRows(ROW_SPACE)
+    g.set(align='LEFT')
+    g.text('\n')
     
-    if badge.f_hat_holder:
-        print_img('hat.png')
-        at.underlineOn()
-        at.justify('C')
-        at.println(hats[badge.hat_award_id][0])
-        at.underlineOff()
-        for line in wrap(hats[badge.hat_award_id][1], 32):
-            at.println(line)
-        at.justify('L')
+    # if badge.f_hat_holder:
+        # print_img('hat.png')
+        # at.underlineOn()
+        # at.justify('C')
+        # at.println(hats[badge.hat_award_id][0])
+        # at.underlineOff()
+        # for line in wrap(hats[badge.hat_award_id][1], 32):
+            # at.println(line)
+        # at.justify('L')
     
-    if print_code is not None:
-        at.feedRows(ROW_SPACE)
-        url = get_url(badge.from_addr, print_code)
-        qimage = qrcode.make(url)
-        (width, height) = qimage.size
-        qimage.thumbnail((384,384))
-        centered_image = Image.new('1', (384,128), 1)
-        centered_image.paste(qimage, box=(128,0))
-        centered_image = qimage
-        at.printImage(centered_image, LaaT=True)
-        print_img('unlock.png')
-        at.justify('C')
-        at.println('find a handler.')
-        if badge.f_reprint: at.println('(reprint)')
-        at.justify('L')
-    at.feed(3)    
+    # if print_code is not None:
+        # at.feedRows(ROW_SPACE)
+        # url = get_url(badge.from_addr, print_code)
+        # qimage = qrcode.make(url)
+        # (width, height) = qimage.size
+        # qimage.thumbnail((384,384))
+        # centered_image = Image.new('1', (384,128), 1)
+        # centered_image.paste(qimage, box=(128,0))
+        # centered_image = qimage
+        # at.printImage(centered_image, LaaT=True)
+        # print_img('unlock.png')
+        # at.justify('C')
+        # at.println('find a handler.')
+        # if badge.f_reprint: at.println('(reprint)')
+        # at.justify('L')
+    g.cut()
+    g.cut()
+    g.cut()
     
 if __name__ == "__main__":
     if os.path.isfile(pidfile):

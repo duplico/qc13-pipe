@@ -133,6 +133,12 @@ def read_and_handle_achievements(payload):
     print 'Achievements:', ', '.join(map(lambda a: hats[a][0], 
                                      payload.achievement_list))
     
+    # OK, so we're going all through the achievements. But we
+    #  can't really award hats anymore, because that was last year.
+    #  So let's just print the stuff without messing around with hats.
+    
+    return None
+    
     if payload.f_hat_holder and payload.f_badge_has_claimed_hat:
         # They already have a hat, and they've actually claimed it.
         print 'They have a hat, and they have claimed it.'
@@ -182,7 +188,7 @@ if __name__ == "__main__":
                 
             if p.f_rst:
                 send_pipe_nrst()
-            elif p.f_ack:
+            elif p.f_ack: # Shouldn't have to worry about this.
                 print 'Hat accepted.'
                 if give_hat is None:
                     pass
@@ -192,7 +198,7 @@ if __name__ == "__main__":
                     root['achievements_awarded'].append(give_hat)
                     transaction.commit()
                 give_hat = None
-            elif p.f_nack:
+            elif p.f_nack: # Shouldn't have to worry about this.
                 print 'Hat refused. Ungrateful little squid...'
                 give_hat = None
                 print_journey(p, give_hat) # Hat refused. Ungrateful jackass...
