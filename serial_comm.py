@@ -179,30 +179,30 @@ if __name__ == "__main__":
     #       timeout.
 
    with serial.Serial('/dev/ttyUSB0', 9600) as ser:
-        give_hat = None
-        while True:
-            print "Listening..."
-            p = read_payload()
-            if not p:
-                continue
-                
-            if p.f_rst:
-                send_pipe_nrst()
-            elif p.f_ack: # Shouldn't have to worry about this.
-                print 'Hat accepted.'
-                if give_hat is None:
-                    pass
-                else:
-                    # Accepted
-                    # Save that the hat is awarded.
-                    root['achievements_awarded'].append(give_hat)
-                    transaction.commit()
-                give_hat = None
-            elif p.f_nack: # Shouldn't have to worry about this.
-                print 'Hat refused. Ungrateful little squid...'
-                give_hat = None
-                print_journey(p, give_hat) # Hat refused. Ungrateful jackass...
+    give_hat = None
+    while True:
+        print "Listening..."
+        p = read_payload()
+        if not p:
+            continue
+            
+        if p.f_rst:
+            send_pipe_nrst()
+        elif p.f_ack: # Shouldn't have to worry about this.
+            print 'Hat accepted.'
+            if give_hat is None:
+                pass
             else:
-                # Got a NRST, time to read achievements.
-                give_hat = read_and_handle_achievements(p)
-                if give_hat is None: print_journey(p, give_hat)
+                # Accepted
+                # Save that the hat is awarded.
+                root['achievements_awarded'].append(give_hat)
+                transaction.commit()
+            give_hat = None
+        elif p.f_nack: # Shouldn't have to worry about this.
+            print 'Hat refused. Ungrateful little squid...'
+            give_hat = None
+            print_journey(p, give_hat) # Hat refused. Ungrateful jackass...
+        else:
+            # Got a NRST, time to read achievements.
+            give_hat = read_and_handle_achievements(p)
+            if give_hat is None: print_journey(p, give_hat)
