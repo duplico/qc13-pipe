@@ -1,3 +1,5 @@
+from __future__ import unicode_literals
+
 import os
 import sys
 import base64
@@ -17,7 +19,7 @@ pidfile = "/tmp/qc13pipe.pid"
 
 KEY = 'iSLJVA4c5TmIM103GHPWM6fz5NIHnGuAPU0x8t6UxyWi1F6wulrJilkbqk7cgma'
 
-p = printer.Usb(0x0416, 0x5011)
+g = printer.Usb(0x0416, 0x5011)
 
 
 def get_url(badge_id, award_id):
@@ -62,9 +64,10 @@ def progress_bar(label, amt, outof):
 ROW_SPACE = 15
 
 def print_img(path):
+    g.text('\n')
     i = Image.open(path)
-    i.thumbnail((384,384))
-    g.image(i, impl='bitImageColumn')
+    i.thumbnail((340,340))
+    g.image(i, impl='bitImageColumn', fragment_height=128)
     # TODO: Don't do this.
     # at.printImage(i, LaaT=True)
     
@@ -79,18 +82,18 @@ def print_journey(badge, print_code):
         # print 'We should print a QR code.'
     
     # at.println("   your journey so far") #    (%d)" % badge.from_addr)
-    println("   your journey so far") #    (%d)" % badge.from_addr)
+    println("   your journey so far (lol)") #    (%d)" % badge.from_addr)
     print_img('qc13receiptlogo_smw.png')
     print_img('uber.png')
     println(progress_bar('been near', badge.uber_seen_count, UBER_COUNT))
     println(progress_bar('touched tentacles', badge.uber_mate_count, UBER_COUNT))
     
-    g.cut()
+    g.text('\n')
     print_img('handler.png')
     println(progress_bar('been near', badge.odh_seen_count, HANDLER_COUNT))
     println(progress_bar('touched tentacles', badge.odh_mate_count, HANDLER_COUNT))
     
-    feedRows(ROW_SPACE)
+    g.text('\n')
     print_img('blooper.png')
     println(progress_bar('been near', badge.seen_count, 250))
     println(progress_bar('touched tentacles', badge.mate_count, 250))
@@ -103,8 +106,8 @@ def print_journey(badge, print_code):
     g.set(text_type='NORMAL')
     for line in wrap(camos[badge.camo_id][1], 32):
         println(line)
-    
-    g.cut()
+
+    g.text('\n')
     print_img('achievements.png')
     
     ach_list = map(lambda a: hats[a][0], badge.achievement_list)
@@ -140,8 +143,6 @@ def print_journey(badge, print_code):
         # at.println('find a handler.')
         # if badge.f_reprint: at.println('(reprint)')
         # at.justify('L')
-    g.cut()
-    g.cut()
     g.cut()
     
 if __name__ == "__main__":
